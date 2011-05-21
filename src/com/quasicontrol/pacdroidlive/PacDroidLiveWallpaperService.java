@@ -6,6 +6,7 @@ import com.quasicontrol.live.Sprite;
 import com.quasicontrol.live.TurningPoint;
 import com.quasicontrol.live.WPUtil;
 import com.quasicontrol.live.WallBlock;
+import com.quasicontrol.live.Dot;
 
 import android.content.Context;
 import android.content.SharedPreferences;
