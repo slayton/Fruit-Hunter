@@ -101,23 +101,23 @@
 		android:title="Advanced UI Settings"/>
 		
 	<ListPreference
+		android:key="n_rows"
 		android:entries="@array/n_icons"
 		android:entryValues="@array/n_icon_values"
+		android:defaultValue="4"
 		android:dialogTitle="Homescreen Rows"
-		android:key="n_rows"
 		android:title="Homescreen Rows"
 		android:negativeButtonText="Cancel"
-		android:enabled="true"
-		android:defaultValue="1"/>
+		android:enabled="true"/>
 	<ListPreference
+		android:key="n_cols"
 		android:entries="@array/n_icons"
 		android:entryValues="@array/n_icon_values"
+		android:defaultValue="4"
 		android:dialogTitle="Homescreen Columns"
-		android:key="n_cols"
 		android:title="Homescreen Columns"
 		android:negativeButtonText="Cancel"
-		android:enabled="true"
-		android:defaultValue="1"/>
+		android:enabled="true"/>
 					
 	<PreferenceCategory
 		android:title="Other"/>

@@ -153,8 +153,8 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
         	WPUtil.logD("loading PREFERENCES!!!");
         	eatMonsters = mPrefs.getBoolean("eat_monsters", true);
         	gameSpeed = Integer.parseInt(mPrefs.getString("game_speed", "2"));
-        	runnerAi = Integer.parseInt(mPrefs.getString("runner_ai", "2"));
-        	monsterAi = Integer.parseInt(mPrefs.getString("monster_ai", "1"));
+        	runnerAi = Integer.parseInt(mPrefs.getString("runner_ai", "1"));
+        	monsterAi = Integer.parseInt(mPrefs.getString("monster_ai", "0"));
         	gameSpeed = Integer.parseInt(mPrefs.getString("game_speed", "1"));
         	nMonsters = Integer.parseInt(mPrefs.getString("n_monsters", "16"));
         	drawWalls = mPrefs.getBoolean("draw_walls", false);
@@ -162,10 +162,17 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
         	bgColor = parseColorPref(Integer.parseInt(mPrefs.getString("bg_color", "0")));
         	dotColor = parseColorPref(Integer.parseInt(mPrefs.getString("dot_color", "6")));
         	drawDots = mPrefs.getBoolean("draw_dots", false);
+        	
         	nCol = Integer.parseInt(mPrefs.getString("n_cols", "4"));
-        	nRow = Integer.parseInt(mPrefs.getString("n_rows", "4")); 
+        	nRow = Integer.parseInt(mPrefs.getString("n_rows", "4"));
+ 
+        	if (monsterAi==1)
+        		monsterAi = 0;
         	
-        	
+        	if (nCol<4)
+        		nCol=4;
+        	if (nRow<4)
+        		nRow=4;       	
         	
         	switch(gameSpeed){
         	case 0:
@@ -428,16 +435,15 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
             TurningPoint sp;
             for (int i=0; i<nMonsters; i++)
             {
-
             	if (i < ((nRow+1)*(nCol/2)+1))
             		sp = turningPoints.get(i);
             	else
-            		sp = turningPoints.get(i+1); 			
-            			
-            	
+            		sp = turningPoints.get(i+1); 				
+            	WPUtil.logD("Sp is null:" + Boolean.toString(sp==null));
+            	WPUtil.logD("wpBounds is null:"+ Boolean.toString(wpBounds==null));
             	monsters.add(new PacDroidMonster(sp.x,sp.y, wpBounds, mImgList));
             }
-            WPUtil.logD("Initialized " + Integer.toString(monsters.size()) + " monsters");            
+            //WPUtil.logD("Initialized " + Integer.toString(monsters.size()) + " monsters");            
             
             pacdroid.setTurningPoints(this.turningPoints);
             for (int i=0; i<monsters.size(); i++){
@@ -508,6 +514,7 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
             for (int i=0; i<=nCol; i++)
             	for (int j=0; j<=nRow; j++)
             	{
+            		WPUtil.logD(Integer.toString(i)+"x"+Integer.toString(j));
         			x = minX + dx*i;
         			y = minY + dy*j;
         			TurningPoint tp = new TurningPoint(x,y);
@@ -517,8 +524,13 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
         			tp.down = j!=nRow;
 
         			turningPoints.add(tp);
-        			
             	}  
+            
+            WPUtil.logD("Created n Turning points:" + Integer.toString(turningPoints.size()));
+            WPUtil.logD("Created n Turning points:" + Integer.toString(turningPoints.size()));
+            WPUtil.logD("Created n Turning points:" + Integer.toString(turningPoints.size()));
+
+        
         }
         private void initWalls(){
         	
