@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+<string-array name="runner_ai">
+   <item>Random</item>
+   <item>Hunt</item>
+</string-array>
+
+<string-array name="runner_ai_values">
+	<item>0</item>
+	<item>1</item>
+</string-array>
+
+<string-array name="monster_ai">
+   <item>Random</item>
+   <item>Avoid</item>
+</string-array>
+
+<string-array name="monster_ai_values">
+	<item>0</item>
+	<item>2</item>
+</string-array>
+
+<string-array name="win_condition">
+   <item>Eat All Dots</item>
+   <item>Eat All Monsters</item>
+   <item>Eat All Dots and Monsters</item>
+</string-array>
+
+<string-array name="win_condition_values">
+	<item>0</item>
+	<item>1</item>
+	<item>2</item>
+</string-array>
+
+<string-array name="game_speed">
+   <item>Fast</item>
+   <item>Normal</item>
+   <item>Slow</item>
+</string-array>
+
+<string-array name="game_speed_values">
+	<item>0</item>
+	<item>1</item>
+	<item>2</item>
+</string-array>
+
+<string-array name="n_monsters">
+	<item>2</item>  
+    <item>4</item>
+    <item>8</item>
+    <item>12</item>
+    <item>16</item>
+    <item>20</item>
+    <item>24</item>
+</string-array>
+
+<string-array name="n_monster_values">
+	<item>2</item>  
+    <item>4</item>
+    <item>8</item>
+    <item>12</item>
+    <item>16</item>
+    <item>20</item>
+    <item>24</item>
+</string-array>
+
+<string-array name="colors">
+	<item>Black</item>
+	<item>Blue</item>  
+    <item>Gray</item>
+    <item>Green</item>
+    <item>Magenta</item>
+    <item>Red</item>
+    <item>Yellow</item>
+    <item>White</item>
+    <item>Cyan</item>
+</string-array>
+
+<string-array name="color_values">
+	<item>0</item>
+	<item>1</item>  
+    <item>2</item>
+    <item>3</item>
+    <item>4</item>
+    <item>5</item>
+    <item>6</item>
+    <item>7</item>
+    <item>8</item>
+</string-array>
+
+<string-array name="n_icons">
+    <item>4</item>
+    <item>5</item>
+    <item>6</item>
+    <item>7</item>
+    <item>8</item>
+    <item>9</item>
+    <item>10</item>
+</string-array>
+<string-array name="n_icon_values">
+    <item>4</item>
+    <item>5</item>
+    <item>6</item>
+    <item>7</item>
+    <item>8</item>
+    <item>9</item>
+    <item>10</item>
+</string-array>
+
+</resources>

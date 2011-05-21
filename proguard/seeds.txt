@@ -1,0 +1,2 @@
+com.quasicontrol.pacdroidlive.PacDroidLiveSettings
+com.quasicontrol.pacdroidlive.PacDroidLiveWallpaperService

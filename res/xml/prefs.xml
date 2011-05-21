@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+        android:title="@string/app_name"
+        android:key="pacmanlive_settings">
+
+	<PreferenceCategory
+		android:title="Game Settings"/>
+	<ListPreference 
+		android:entries="@array/game_speed"  
+		android:entryValues="@array/game_speed_values"
+		android:dialogTitle="Select Game Speed" 
+		android:key="game_speed" 
+		android:title="Select Game Speed"
+		android:negativeButtonText="Cancel"
+		android:enabled="true"
+		android:defaultValue="1"/>	
+		
+    <ListPreference 
+		android:entries="@array/runner_ai"  
+		android:entryValues="@array/runner_ai_values"
+		android:dialogTitle="Select Desired AI" 
+		android:key="runner_ai" 
+		android:title="Change Android AI"
+		android:negativeButtonText="Cancel"
+		android:enabled="true"
+		android:defaultValue="0"/>
+		
+	<ListPreference 
+		android:entries="@array/monster_ai"  
+		android:entryValues="@array/monster_ai_values"
+		android:dialogTitle="Select Desired AI" 
+		android:key="monster_ai" 
+		android:title="Change Fruit AI"
+		android:negativeButtonText="Cancel"
+		android:enabled="true"
+		android:defaultValue="1"/>
+		
+	<CheckBoxPreference 
+        android:key="eat_monsters"
+        android:title="Android Eats Fruit" 
+		android:defaultValue="true"/>
+		
+	<ListPreference
+		android:entries="@array/n_monsters"
+		android:entryValues="@array/n_monster_values"
+		android:dialogTitle="Number of Fruits"
+		android:key="n_monsters"
+		android:title="Number of Fruits"
+		android:negativeButtonText="Cancel"
+		android:enabled="true"
+		android:defaultValue="4"/>	
+	
+	<PreferenceCategory
+		android:title="Interface Settings"/>
+
+	<ListPreference
+		android:entries="@array/colors"
+		android:entryValues="@array/color_values"
+		android:dialogTitle="Background Color"
+		android:key="bg_color"
+		android:title="Background Color"
+		android:negativeButtonText="Cancel"
+		android:enabled="true"
+		android:defaultValue="0"/>	
+				
+	<CheckBoxPreference 
+        android:key="draw_dots"
+        android:title="Draw PacMan Style Dots" 
+		android:defaultValue="false"
+		android:summary="Will slow down animations"/>
+	
+	<ListPreference
+		android:entries="@array/colors"
+		android:entryValues="@array/color_values"
+		android:dialogTitle="Dot Color"
+		android:key="dot_color"
+		android:title="Dot Color"
+		android:negativeButtonText="Cancel"
+		android:enabled="true"
+		android:defaultValue="1"
+		android:dependency="draw_dots"/>	
+		
+	<CheckBoxPreference 
+        android:key="draw_walls"
+        android:title="Draw PacMan Style Walls" 
+		android:defaultValue="false"
+		android:summary="Will slow down animations"/>
+		
+	<ListPreference
+		android:entries="@array/colors"
+		android:entryValues="@array/color_values"
+		android:dialogTitle="Wall Color"
+		android:key="wall_color"
+		android:title="Wall Color"
+		android:negativeButtonText="Cancel"
+		android:enabled="true"
+		android:defaultValue="1"
+		android:dependency="draw_walls"/>	
+	
+	<PreferenceCategory
+		android:title="Advanced UI Settings"/>
+		
+	<ListPreference
+		android:entries="@array/n_icons"
+		android:entryValues="@array/n_icon_values"
+		android:dialogTitle="Homescreen Rows"
+		android:key="n_rows"
+		android:title="Homescreen Rows"
+		android:negativeButtonText="Cancel"
+		android:enabled="true"
+		android:defaultValue="1"/>
+	<ListPreference
+		android:entries="@array/n_icons"
+		android:entryValues="@array/n_icon_values"
+		android:dialogTitle="Homescreen Columns"
+		android:key="n_cols"
+		android:title="Homescreen Columns"
+		android:negativeButtonText="Cancel"
+		android:enabled="true"
+		android:defaultValue="1"/>
+					
+	<PreferenceCategory
+		android:title="Other"/>
+		
+     <Preference
+		android:key="email_dev"
+		android:title="Contact the Developer"
+		android:summary="Report a bug or request a feature"
+		android:selectable="true"/>
+		
+</PreferenceScreen>

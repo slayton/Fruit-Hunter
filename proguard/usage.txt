@@ -1,0 +1,46 @@
+com.quasicontrol.live.ImageDot
+com.quasicontrol.live.R
+com.quasicontrol.live.R$array
+com.quasicontrol.live.R$attr
+com.quasicontrol.live.R$drawable
+com.quasicontrol.live.R$layout
+com.quasicontrol.live.R$raw
+com.quasicontrol.live.R$string
+com.quasicontrol.live.R$xml
+com.quasicontrol.live.Sprite:
+    public static final int MOVING_UP
+    public static final int MOVING_DOWN
+    public static final int MOVING_LEFT
+    public static final int MOVING_RIGHT
+    public static final int IS_SUPER
+    public static final int IS_DEAD
+    public static final long MIN_ELAPSED_TIME
+    public static final int AI_RANDOM
+    public static final int AI_HUNT
+    public static final int AI_AVOID
+    79:81:public Sprite(int,int,android.graphics.Rect,java.util.ArrayList,java.util.ArrayList)
+    148:148:public boolean detectLinearCollision(android.graphics.Point,int)
+    341:341:public int getDir()
+    344:354:public void setDir(int)
+com.quasicontrol.live.UIPoint:
+    public abstract void draw(android.graphics.Canvas,android.graphics.Paint)
+com.quasicontrol.live.WPUtil:
+    41:41:public static void logW(java.lang.String)
+    45:45:public static void logi(java.lang.String)
+com.quasicontrol.pacdroidlive.ImageDot
+com.quasicontrol.pacdroidlive.PacDroid:
+    24:28:PacDroid(int,int,android.graphics.Rect,java.util.ArrayList,java.util.ArrayList)
+com.quasicontrol.pacdroidlive.PacDroidLiveWallpaperService$PacDroidEngine:
+    private java.util.ArrayList startLocations
+    private int winConditions
+    545:545:void drawTouchPoint(android.graphics.Canvas)
+com.quasicontrol.pacdroidlive.PacDroidMonster:
+    19:21:PacDroidMonster(int,int,android.graphics.Rect,android.graphics.Bitmap,java.util.ArrayList,java.util.ArrayList)
+com.quasicontrol.pacdroidlive.R
+com.quasicontrol.pacdroidlive.R$array
+com.quasicontrol.pacdroidlive.R$attr
+com.quasicontrol.pacdroidlive.R$drawable
+com.quasicontrol.pacdroidlive.R$layout
+com.quasicontrol.pacdroidlive.R$raw
+com.quasicontrol.pacdroidlive.R$string
+com.quasicontrol.pacdroidlive.R$xml
