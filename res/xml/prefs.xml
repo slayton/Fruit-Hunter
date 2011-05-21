@@ -127,5 +127,11 @@
 		android:title="Contact the Developer"
 		android:summary="Report a bug or request a feature"
 		android:selectable="true"/>
+	<Preference
+		android:key="donate"
+		android:icon="@drawable/paypal"
+		android:title="Donate!"
+		android:summary="Support my work, donate today!"
+		android:selectable="true"/>
 		
 </PreferenceScreen>
