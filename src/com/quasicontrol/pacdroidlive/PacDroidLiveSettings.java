@@ -1,9 +1,22 @@
 package com.quasicontrol.pacdroidlive;
 
+import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileOutputStream;
+
+import com.quasicontrol.live.WPUtil;
+
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.preference.CheckBoxPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.Preference.OnPreferenceChangeListener;
@@ -12,14 +25,22 @@ import android.widget.Toast;
 
 
 public class PacDroidLiveSettings extends PreferenceActivity {
+	public final int GOT_IMAGE =1;
+
+	protected CheckBoxPreference customImgChk;
+	protected Uri mUri;
+	
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		addPreferencesFromResource(R.xml.prefs);
 		//setContentView(R.xml.prefs);
 		 Preference email_dev = this.findPreference("email_dev");
-	     email_dev.setOnPreferenceClickListener(new EmailPrefClickListener(this.getApplicationContext()));
 	     Preference donate = this.findPreference("donate");
+	     customImgChk = (CheckBoxPreference) this.findPreference("custom_monster_img");
+	     
+	     email_dev.setOnPreferenceClickListener(new EmailPrefClickListener(this.getApplicationContext()));
 	     donate.setOnPreferenceClickListener(new DonatePrefClickListener(this.getApplicationContext()));
+	     customImgChk.setOnPreferenceClickListener(new CustomImagePreferenceClickListener(this.getApplicationContext()));
 	}
 
 	/**
@@ -74,5 +95,57 @@ public class PacDroidLiveSettings extends PreferenceActivity {
 			return true;
 		}
     }
+	
+	private class CustomImagePreferenceClickListener implements OnPreferenceClickListener{
+		Context c = null;
+		public CustomImagePreferenceClickListener(Context c){
+			this.c = c;
+		}
+		public boolean onPreferenceClick(Preference preference) {
+
+			
+			if (customImgChk.isChecked())
+				getImage();
+			return true;
+		}
+		  
+	}
+	
+	private void getImage() {
+    	Intent intent = new Intent(Intent.ACTION_GET_CONTENT);  
+    	intent.setType("image/*");
+    	mUri = Uri.fromFile(new File(Environment.getExternalStorageDirectory(),
+    			"pic_" + String.valueOf(System.currentTimeMillis()) + ".jpg"));
+    	intent.putExtra(android.provider.MediaStore.EXTRA_OUTPUT, mUri);
+
+    	try {
+    		intent.putExtra("return-data", true);
+    		startActivityForResult(intent,GOT_IMAGE );
+    	} catch (ActivityNotFoundException e) {
+    		e.printStackTrace();
+    	}
+    } 
+	
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    	if (resultCode != RESULT_OK) {
+    		customImgChk.setChecked(false);
+    		return;
+    	}
+    	if (requestCode == GOT_IMAGE) {
+    		Bitmap image = WPUtil.loadPublicImage(mUri.getPath());
+    		if (image!=null)
+    		{
+    			image = WPUtil.resizeBitmap(image, WPUtil.IMAGE_SIZE_X, WPUtil.IMAGE_SIZE_Y);
+    			WPUtil.savePrivateBitmap(this.getApplicationContext(), WPUtil.MONSTER_FILE_PATH, image);
+    		}
+    		else
+    		{
+    			customImgChk.setChecked(false);
+    			Toast.makeText(this.getApplicationContext(), "Failed to grab image! Try selecting with the Gallery app!", Toast.LENGTH_LONG).show();
+    		}
+    	}
+    }
+	
+	
 
 }

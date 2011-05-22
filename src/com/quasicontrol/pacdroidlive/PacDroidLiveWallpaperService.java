@@ -29,9 +29,9 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
 
     //public static final String SHARED_PREFS_NAME="wallpaperprefs";
 
-	private DisplayMetrics dMetrics;
-	private Resources resources;
-	private Context context; 
+	protected DisplayMetrics dMetrics;
+	protected Resources resources;
+	protected Context context; 
 	
     @Override
     public void onCreate() {
@@ -55,41 +55,41 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
     class PacDroidEngine extends Engine 
         implements SharedPreferences.OnSharedPreferenceChangeListener {
 
-    	private DisplayMetrics dMetrics;
-    	private Resources resources;
-    	private Context context; 
+    	protected DisplayMetrics dMetrics;
+    	protected Resources resources;
+    	protected Context context; 
     	
-        private final Handler mHandler = new Handler();
+        protected final Handler mHandler = new Handler();
 
-        private int tOff;
-        private int bOff;
-        private int lOff;
-        private int rOff;
+        protected int tOff;
+        protected int bOff;
+        protected int lOff;
+        protected int rOff;
         
-        private ArrayList<Dot> dots;
-        private ArrayList<TurningPoint> turningPoints;
-        private ArrayList<Sprite> monsters;
-        private Sprite pacdroid;
-        private ArrayList<TurningPoint> startLocations;
-        private ArrayList<WallBlock> walls;
+        protected ArrayList<Dot> dots;
+        protected ArrayList<TurningPoint> turningPoints;
+        protected ArrayList<Sprite> monsters;
+        protected Sprite pacdroid;
+        protected ArrayList<TurningPoint> startLocations;
+        protected ArrayList<WallBlock> walls;
         
-        private int nCol = 4;
-    	private int nRow = 4;
-    	private int nMonsters = 4;
+        protected int nCol = 4;
+    	protected int nRow = 4;
+    	protected int nMonsters = 4;
         
-        private final Paint mPaint = new Paint();
+        protected final Paint mPaint = new Paint();
                 
-        private final Runnable mDrawWallpaper = new Runnable() {
+        protected final Runnable mDrawWallpaper = new Runnable() {
             public void run() {
                 drawFrame();
             }
         };
-        private boolean mVisible;
-        private SharedPreferences mPrefs;
-        private Rect wpBounds;
+        protected boolean mVisible;
+        protected SharedPreferences mPrefs;
+        protected Rect wpBounds;
         
         
-        private int nEndGameFrames = 10;
+        protected int nEndGameFrames = 10;
 
         // Preference Variables
         protected boolean drawWalls = false;
@@ -97,11 +97,14 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
         protected int bgColor = Color.BLACK;
         protected int dotColor = Color.WHITE;
         protected boolean drawDots = true;
-        private boolean eatMonsters;
-        private int gameSpeed;
-        private int runnerAi;
-        private int monsterAi;
-        private int winConditions;
+        protected boolean eatMonsters;
+        protected int gameSpeed;
+        protected int runnerAi;
+        protected int monsterAi;
+        protected int winConditions;
+        protected boolean customMonsterImg = false;
+        
+        protected boolean reseting = false;
         
         
         PacDroidEngine(DisplayMetrics m, Resources r, Context c) {
@@ -129,25 +132,15 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
             bOff = WPUtil.bottomOffset(dMetrics);
             lOff = WPUtil.leftOffset(dMetrics);
             rOff = WPUtil.rightOffset(dMetrics);
-
+            
             wpBounds = new Rect(0+lOff, 0+tOff, dMetrics.widthPixels-rOff, dMetrics.heightPixels-bOff);
             
             WPUtil.logD("Screen Resolution:".concat(Integer.toString(dMetrics.widthPixels)).concat("x").concat(Integer.toString(dMetrics.heightPixels)));
             WPUtil.logD("Bounds for the wallpaper:".concat(wpBounds.toShortString()));
-            
-            //initDotArray();
-   		 	//initTurningPoints();
-   		 	//initWalls();
-   		 	//initStartLocations();
-            //initActors();
-           
+                      
             resetGame();
-            
-            //ghosts.add(new Ghost(100, 300, wpBounds, BitmapFactory.decodeResource(resources, R.raw.g5)))
-
-            //mPrefs = PacManWallpaperService.this.getSharedPreferences(SHARED_PREFS_NAME, 0);
         }
-        private void loadPreferences()
+        protected void loadPreferences()
         {
             
         	WPUtil.logD("loading PREFERENCES!!!");
@@ -162,7 +155,7 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
         	bgColor = parseColorPref(Integer.parseInt(mPrefs.getString("bg_color", "0")));
         	dotColor = parseColorPref(Integer.parseInt(mPrefs.getString("dot_color", "6")));
         	drawDots = mPrefs.getBoolean("draw_dots", false);
-        	
+        	customMonsterImg = mPrefs.getBoolean("custom_monster_img", false);
         	nCol = Integer.parseInt(mPrefs.getString("n_cols", "4"));
         	nRow = Integer.parseInt(mPrefs.getString("n_rows", "4"));
  
@@ -245,7 +238,8 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
         	pacdroid.setAiType(runnerAi);
         	for (int i=0; i<monsters.size(); i++)
         		monsters.get(i).setAiType(monsterAi);
-        	if (key.compareToIgnoreCase("n_monsters")==0 || key.compareToIgnoreCase("n_rows")==0 || key.compareToIgnoreCase("n_cols")==0)
+        	if (key.equalsIgnoreCase("n_monsters") || key.equalsIgnoreCase("n_rows") ||
+        			key.equalsIgnoreCase("n_cols") || key.equalsIgnoreCase("custom_monster_img"))
         		resetGame();
         }
 
@@ -265,6 +259,7 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
         public void onVisibilityChanged(boolean visible) {
             mVisible = visible;
             if (visible) {
+            	resetGame();
                 drawFrame();
             } else {
                 mHandler.removeCallbacks(mDrawWallpaper);
@@ -326,6 +321,7 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
         	 //this.w = frame.width();
         	 //this.h = frame.height();
            
+        	this.reseting = false;
             Canvas c = null;
             try {
                 c = holder.lockCanvas();
@@ -397,7 +393,7 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
         	this.pacdroid.draw(c, mPaint);
         }
 
-        private void initActors()
+        protected void initActors()
         {
         	 WPUtil.logD("Stored AI for PacDroid:" + Integer.toString(runnerAi));
           
@@ -408,7 +404,7 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
              pacdroid.setTargetActors(monsters);
         }
         
-        private void initPacDroid(/*TurningPoint tp*/){
+        protected void initPacDroid(/*TurningPoint tp*/){
         	 
         	TurningPoint sp = turningPoints.get((nRow+1)*(nCol/2)+1);
             ArrayList<Bitmap> runnerImgList = new ArrayList<Bitmap>();
@@ -424,12 +420,20 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
             pacdroid.setAiType(runnerAi);
         	
         }
-        private void initMonsters(){
+        protected void initMonsters(){
         	ArrayList<Sprite> runnerList = new ArrayList<Sprite>();
             runnerList.add(pacdroid);
             
             ArrayList<Bitmap> mImgList = new ArrayList<Bitmap>();
-            mImgList.add(BitmapFactory.decodeResource(resources, R.raw.pd_apple));
+            Bitmap monsterImg = null; 
+            
+            if (this.customMonsterImg)
+            	monsterImg = WPUtil.loadPrivateImage(this.context, WPUtil.MONSTER_FILE_PATH);
+            
+            if(monsterImg==null) // null from not set or no image exhists
+            	monsterImg = BitmapFactory.decodeResource(resources, R.raw.pd_apple);
+            
+            mImgList.add(monsterImg);
             
             monsters = new ArrayList<Sprite>();
             TurningPoint sp;
@@ -439,8 +443,6 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
             		sp = turningPoints.get(i);
             	else
             		sp = turningPoints.get(i+1); 				
-            	WPUtil.logD("Sp is null:" + Boolean.toString(sp==null));
-            	WPUtil.logD("wpBounds is null:"+ Boolean.toString(wpBounds==null));
             	monsters.add(new PacDroidMonster(sp.x,sp.y, wpBounds, mImgList));
             }
             //WPUtil.logD("Initialized " + Integer.toString(monsters.size()) + " monsters");            
@@ -454,7 +456,7 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
             	((PacDroidMonster)monsters.get(i)).vulnerable = eatMonsters;
             }
         }
-        private void initDotArray(){
+        protected void initDotArray(){
             dots = new ArrayList<Dot>();
        	
         	WPUtil.logD("Initializing the dot array");
@@ -497,7 +499,7 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
 		            	}  
         }
 
-        private void initTurningPoints(){
+        protected void initTurningPoints(){
         	
         	turningPoints = new ArrayList<TurningPoint>();
         	WPUtil.logD("Initializing the turning points array");
@@ -514,7 +516,7 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
             for (int i=0; i<=nCol; i++)
             	for (int j=0; j<=nRow; j++)
             	{
-            		WPUtil.logD(Integer.toString(i)+"x"+Integer.toString(j));
+            		//WPUtil.logD(Integer.toString(i)+"x"+Integer.toString(j));
         			x = minX + dx*i;
         			y = minY + dy*j;
         			TurningPoint tp = new TurningPoint(x,y);
@@ -532,7 +534,7 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
 
         
         }
-        private void initWalls(){
+        protected void initWalls(){
         	
             walls = new ArrayList<WallBlock>();
         	WPUtil.logD("Initializing the wallblock objects array");
@@ -592,7 +594,8 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
         }
         void resetGame()
         {
-        	        	
+        	     
+        	this.reseting = true;
         	pacdroid = null;
         	monsters = null;
         	turningPoints = null;

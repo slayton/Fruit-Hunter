@@ -24,6 +24,11 @@
 		android:negativeButtonText="Cancel"
 		android:enabled="true"
 		android:defaultValue="0"/>
+	
+	<CheckBoxPreference 
+        android:key="eat_monsters"
+        android:title="Android Eats Fruit" 
+		android:defaultValue="true"/>
 		
 	<ListPreference 
 		android:entries="@array/monster_ai"  
@@ -35,11 +40,6 @@
 		android:enabled="true"
 		android:defaultValue="1"/>
 		
-	<CheckBoxPreference 
-        android:key="eat_monsters"
-        android:title="Android Eats Fruit" 
-		android:defaultValue="true"/>
-		
 	<ListPreference
 		android:entries="@array/n_monsters"
 		android:entryValues="@array/n_monster_values"
@@ -49,6 +49,12 @@
 		android:negativeButtonText="Cancel"
 		android:enabled="true"
 		android:defaultValue="4"/>	
+	
+	<CheckBoxPreference 
+        android:key="custom_monster_img"
+        android:title="Use Custom Fruit Image"
+        android:summary="Check to select a custom image"
+		android:defaultValue="false"/>
 	
 	<PreferenceCategory
 		android:title="Interface Settings"/>
