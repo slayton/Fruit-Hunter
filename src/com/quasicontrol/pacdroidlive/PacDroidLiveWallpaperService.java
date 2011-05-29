@@ -22,558 +22,597 @@ import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.service.wallpaper.WallpaperService;
 import android.util.DisplayMetrics;
+import android.view.Display;
 import android.view.MotionEvent;
+import android.view.Surface;
 import android.view.SurfaceHolder;
+import android.view.WindowManager;
 
 public class PacDroidLiveWallpaperService extends WallpaperService {
 
-    //public static final String SHARED_PREFS_NAME="wallpaperprefs";
+	//public static final String SHARED_PREFS_NAME="wallpaperprefs";
 
-	protected DisplayMetrics dMetrics;
 	protected Resources resources;
 	protected Context context; 
-	
-    @Override
-    public void onCreate() {
-        super.onCreate();
-        this.dMetrics = WPUtil.getDisplayMetrics(this);
-	    this.resources = this.getResources();
-	    context = this.getApplicationContext();
-    }
 
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-    }
-
-    @Override
-    public Engine onCreateEngine() {
-        return new PacDroidEngine(dMetrics, resources, context);
-    }
+	public static final String PACDROID_THEME = "com.quasicontrol.pacdroidlive";
+	public static final String PACMAN_THEME = "com.quasicontrol.pacdroidlive.classic";
+	public static final String ZELDA_THEME = "com.quasicontrol.pacdroidlive.elfhunter";
 
 
-    class PacDroidEngine extends Engine 
-        implements SharedPreferences.OnSharedPreferenceChangeListener {
+	@Override
+	public void onCreate() {
+		super.onCreate();
+		WPUtil.logD("PacDroidWallpaperService.onCreate()");
+		this.resources = this.getResources();
+		context = this.getApplicationContext();
+	}
 
-    	protected DisplayMetrics dMetrics;
-    	protected Resources resources;
-    	protected Context context; 
-    	
-        protected final Handler mHandler = new Handler();
+	@Override
+	public void onDestroy() {
+		super.onDestroy();
+	}
 
-        protected int tOff;
-        protected int bOff;
-        protected int lOff;
-        protected int rOff;
-        
-        protected ArrayList<Dot> dots;
-        protected ArrayList<TurningPoint> turningPoints;
-        protected ArrayList<Sprite> monsters;
-        protected Sprite pacdroid;
-        protected ArrayList<TurningPoint> startLocations;
-        protected ArrayList<WallBlock> walls;
-        
-        protected int nCol = 4;
-    	protected int nRow = 4;
-    	protected int nMonsters = 4;
-        
-        protected final Paint mPaint = new Paint();
-                
-        protected final Runnable mDrawWallpaper = new Runnable() {
-            public void run() {
-                drawFrame();
-            }
-        };
-        protected boolean mVisible;
-        protected SharedPreferences mPrefs;
-        protected Rect wpBounds;
-        
-        
-        protected int nEndGameFrames = 10;
+	@Override
+	public Engine onCreateEngine() {
+		return new PacDroidEngine(this, resources, context);
+	}
 
-        // Preference Variables
-        protected boolean drawWalls = false;
-        protected int wallColor =Color.BLUE;
-        protected int bgColor = Color.BLACK;
-        protected int dotColor = Color.WHITE;
-        protected boolean drawDots = true;
-        protected boolean eatMonsters;
-        protected int gameSpeed;
-        protected int runnerAi;
-        protected int monsterAi;
-        protected int winConditions;
-        protected boolean customMonsterImg = false;
-        
-        protected boolean reseting = false;
-        
-        
-        PacDroidEngine(DisplayMetrics m, Resources r, Context c) {
-            // Create a Paint to draw the lines for our cube
-        	
-        	this.dMetrics = m;
-        	this.resources = r; 
-        	this.context = c;  
-        	
-        	mPrefs = PreferenceManager.getDefaultSharedPreferences(context);
-            mPrefs.registerOnSharedPreferenceChangeListener(this);
-            onSharedPreferenceChanged(mPrefs, null);
-            
-        	this.loadPreferences();
-        	
-            final Paint paint = mPaint;
-            paint.setColor(0xffffffff);
-            paint.setAntiAlias(true);
-            paint.setStrokeWidth(2);
-            paint.setStrokeCap(Paint.Cap.ROUND);
-            paint.setStyle(Paint.Style.STROKE);
-            
-         
-            tOff = WPUtil.topOffset(dMetrics);
-            bOff = WPUtil.bottomOffset(dMetrics);
-            lOff = WPUtil.leftOffset(dMetrics);
-            rOff = WPUtil.rightOffset(dMetrics);
-            
-            wpBounds = new Rect(0+lOff, 0+tOff, dMetrics.widthPixels-rOff, dMetrics.heightPixels-bOff);
-            
-            WPUtil.logD("Screen Resolution:".concat(Integer.toString(dMetrics.widthPixels)).concat("x").concat(Integer.toString(dMetrics.heightPixels)));
-            WPUtil.logD("Bounds for the wallpaper:".concat(wpBounds.toShortString()));
-                      
-            resetGame();
-        }
-        protected void loadPreferences()
-        {
-            
-        	WPUtil.logD("loading PREFERENCES!!!");
-        	eatMonsters = mPrefs.getBoolean("eat_monsters", true);
-        	gameSpeed = Integer.parseInt(mPrefs.getString("game_speed", "2"));
-        	runnerAi = Integer.parseInt(mPrefs.getString("runner_ai", "1"));
-        	monsterAi = Integer.parseInt(mPrefs.getString("monster_ai", "0"));
-        	gameSpeed = Integer.parseInt(mPrefs.getString("game_speed", "1"));
-        	nMonsters = Integer.parseInt(mPrefs.getString("n_monsters", "16"));
-        	drawWalls = mPrefs.getBoolean("draw_walls", false);
-        	wallColor = parseColorPref(Integer.parseInt(mPrefs.getString("wall_color", "1")));
-        	bgColor = parseColorPref(Integer.parseInt(mPrefs.getString("bg_color", "0")));
-        	dotColor = parseColorPref(Integer.parseInt(mPrefs.getString("dot_color", "6")));
-        	drawDots = mPrefs.getBoolean("draw_dots", false);
-        	customMonsterImg = mPrefs.getBoolean("custom_monster_img", false);
-        	nCol = Integer.parseInt(mPrefs.getString("n_cols", "4"));
-        	nRow = Integer.parseInt(mPrefs.getString("n_rows", "4"));
- 
-        	if (monsterAi==1)
-        		monsterAi = 0;
-        	
-        	if (nCol<4)
-        		nCol=4;
-        	if (nRow<4)
-        		nRow=4;       	
-        	
-        	switch(gameSpeed){
-        	case 0:
-        		gameSpeed = 1000/80;
-        		break;
-        	case 1:
-        		gameSpeed = 1000/50;
-        		break;
-        	case 2: 
-        		gameSpeed = 1000/24;
-        		break;
-        	}
-        	if (pacdroid==null)
-        		return;
-        	
-        	WPUtil.logD("loaded AI for PacDroid:" + Integer.toString(runnerAi));
-        	
-        	pacdroid.setAiType(runnerAi);
-        	
-        	for (int i=0; i<monsters.size(); i++)
-        	{
-        		monsters.get(i).setAiType(monsterAi);
-        		((PacDroidMonster)monsters.get(i)).vulnerable = eatMonsters;
-        	}
-        }
-        protected int parseColorPref(int c)
-        {
-        	switch (c){
-        	case 0:
-        		c = Color.BLACK;
-        		break;
-        	case 1:
-        		c = Color.BLUE;
-        		break;
-        	case 2:	
-        		c = Color.GRAY;
-        		break;
-        	case 3:
-        		c = Color.GREEN;
-        		break;
-        	case 4:
-        		c = Color.MAGENTA;
-        		break;
-        	case 5:
-        		c = Color.RED;
-        		break;
-        	case 6:
-        		c = Color.YELLOW;
-        		break;
-        	case 7:
-        		c = Color.WHITE;
-        		break;
-        	case 8:
-        		c = Color.CYAN;
-        		break;
-    		default:
-    			c = Color.BLACK;
-        	}
-        	return c;
-        	
-        }
-        public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {
-        	
-        	loadPreferences();
 
-        	if (pacdroid==null)
-        		return;
-        	
-        	WPUtil.logD("New Droid AI:" + Integer.toString(runnerAi));
-        	pacdroid.setAiType(runnerAi);
-        	for (int i=0; i<monsters.size(); i++)
-        		monsters.get(i).setAiType(monsterAi);
-        	if (key.equalsIgnoreCase("n_monsters") || key.equalsIgnoreCase("n_rows") ||
-        			key.equalsIgnoreCase("n_cols") || key.equalsIgnoreCase("custom_monster_img"))
-        		resetGame();
-        }
+	class PacDroidEngine extends Engine 
+	implements SharedPreferences.OnSharedPreferenceChangeListener {
 
-        @Override
-        public void onCreate(SurfaceHolder surfaceHolder) {
-            super.onCreate(surfaceHolder);
-            setTouchEventsEnabled(true);
-        }
+		protected WallpaperService wps;
+		protected DisplayMetrics dMetrics;
+		protected Display disp;
+		protected Resources resources;
+		protected Context context; 
+		protected int currentOrientation = Surface.ROTATION_0;
 
-        @Override
-        public void onDestroy() {
-            super.onDestroy();
-            mHandler.removeCallbacks(mDrawWallpaper);
-        }
+		protected final Handler mHandler = new Handler();
 
-        @Override
-        public void onVisibilityChanged(boolean visible) {
-            mVisible = visible;
-            if (visible) {
-            	resetGame();
-                drawFrame();
-            } else {
-                mHandler.removeCallbacks(mDrawWallpaper);
-            }
-        }
+		protected int tOff;
+		protected int bOff;
+		protected int lOff;
+		protected int rOff;
 
-        @Override
-        public void onSurfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-            super.onSurfaceChanged(holder, format, width, height);
-            // store the center of the surface, so we can draw the cube in the right spot
-            //wpWidth = width;
-            //wpHeight = height;
-            //mCenterX = width/2.0f;
-            //mCenterY = height/2.0f;
-            drawFrame();
-        }
+		protected ArrayList<Dot> dots;
+		protected Dot tempDot;
+		protected int nDots;
 
-        @Override
-        public void onSurfaceCreated(SurfaceHolder holder) {
-            super.onSurfaceCreated(holder);
-        }
+		protected ArrayList<WallBlock> walls;
+		protected int nWalls;
 
-        @Override
-        public void onSurfaceDestroyed(SurfaceHolder holder) {
-            super.onSurfaceDestroyed(holder);
-            mVisible = false;
-            mHandler.removeCallbacks(mDrawWallpaper);
-        }
+		protected ArrayList<TurningPoint> turningPoints;
+		protected ArrayList<Sprite> monsters;
+		protected int nMonsters = 4;
+		protected Sprite tempMonster;
 
-        @Override
-        public void onOffsetsChanged(float xOffset, float yOffset,
-                float xStep, float yStep, int xPixels, int yPixels) {	
-            //drawFrame();
-        }
+		protected Sprite pacdroid;
+		protected ArrayList<TurningPoint> startLocations;
 
-        /*
-         * Store the position of the touch event so we can use it for drawing later
-         */
-        @Override
-        public void onTouchEvent(MotionEvent event) {
-          /*  if (event.getAction() == MotionEvent.ACTION_MOVE) {
+		protected int nRow = 4;
+		protected int nCol = 4;
+		
+		protected String theme = PacDroidLiveWallpaperService.PACDROID_THEME;
+		
+		
+		protected final Paint mPaint = new Paint();
+
+		protected final Runnable mDrawWallpaper = new Runnable() {
+			public void run() {
+				loop();
+			}
+		};
+		protected boolean mVisible;
+		protected SharedPreferences mPrefs;
+		protected Rect wpBounds;
+
+
+		protected int nEndGameFrames = 10;
+
+		// Preference Variables
+		protected boolean drawWalls = false;
+		protected int wallColor =Color.BLUE;
+		protected int wallWidth = 5;
+		protected int bgColor = Color.BLACK;
+		protected int dotColor = Color.WHITE;
+		protected Paint dotPaint = new Paint();
+		protected Paint wallPaint = new Paint();
+
+		protected boolean drawDots = true;
+		protected boolean eatMonsters;
+		protected int gameSpeed;
+		protected int runnerAi;
+		protected int monsterAi;
+		protected int winConditions;
+		protected boolean customMonsterImg = false;
+
+		protected boolean reseting = false;
+
+
+		PacDroidEngine(WallpaperService wps, Resources r, Context c) {
+			// Create a Paint to draw the lines for our cube
+			this.wps = wps;
+			this.resources = r; 
+			this.context = c;  
+			this.disp = ((WindowManager) wps.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
+
+
+			mPrefs = PreferenceManager.getDefaultSharedPreferences(context);
+			mPrefs.registerOnSharedPreferenceChangeListener(this);
+			onSharedPreferenceChanged(mPrefs, null);
+
+			this.loadPreferences();
+
+			final Paint paint = mPaint;
+			paint.setColor(0xffffffff);
+			paint.setAntiAlias(true);
+			paint.setStrokeWidth(2);
+			paint.setStrokeCap(Paint.Cap.ROUND);
+			paint.setStyle(Paint.Style.STROKE);
+
+			resetGame();
+		}
+		protected void loadPreferences()
+		{
+
+
+			WPUtil.logD("loading PREFERENCES!!!");
+			eatMonsters = mPrefs.getBoolean("eat_monsters", true);
+			gameSpeed = Integer.parseInt(mPrefs.getString("game_speed", "2"));
+			runnerAi = Integer.parseInt(mPrefs.getString("runner_ai", "1"));
+			monsterAi = Integer.parseInt(mPrefs.getString("monster_ai", "0"));
+			gameSpeed = Integer.parseInt(mPrefs.getString("game_speed", "1"));
+			nMonsters = Integer.parseInt(mPrefs.getString("n_monsters", "16"));
+			drawWalls = mPrefs.getBoolean("draw_walls", false);
+
+			wallColor = parseColorPref(Integer.parseInt(mPrefs.getString("wall_color", "1")));
+			wallPaint.setColor(wallColor);
+			wallPaint.setStyle(Style.STROKE);
+			wallPaint.setStrokeWidth(this.wallWidth);
+
+			dotColor = parseColorPref(Integer.parseInt(mPrefs.getString("dot_color", "6")));
+			dotPaint.setColor(dotColor);
+
+			bgColor = parseColorPref(Integer.parseInt(mPrefs.getString("bg_color", "0")));
+
+			drawDots = mPrefs.getBoolean("draw_dots", false);
+			customMonsterImg = mPrefs.getBoolean("custom_monster_img", false);
+			nRow = Integer.parseInt(mPrefs.getString("n_rows", "4"));
+			nCol = Integer.parseInt(mPrefs.getString("n_cols", "4"));
+
+			this.theme = mPrefs.getString("theme_pref", "com.quasicontrol.pacdroidlive");
+			
+			if (monsterAi==1)
+				monsterAi = 0;
+
+			if (nRow<4)
+				nRow=4;
+			if (nCol<4)
+				nCol=4;       	
+
+			switch(gameSpeed){
+			case 0:
+				gameSpeed = 1000/40;
+				break;
+			case 1:
+				gameSpeed = 1000/20;
+				break;
+			case 2: 
+				gameSpeed = 1000/15;
+				break;
+			}
+			if (pacdroid==null)
+				return;
+
+
+			
+			pacdroid.setAiType(runnerAi);
+
+			for (int i=0; i<monsters.size(); i++)
+			{
+				monsters.get(i).setAiType(monsterAi);
+				((PacDroidMonster)monsters.get(i)).vulnerable = eatMonsters;
+			}
+			
+
+		}
+		protected int parseColorPref(int c)
+		{
+			switch (c){
+			case 0:
+				c = Color.BLACK;
+				break;
+			case 1:
+				c = Color.BLUE;
+				break;
+			case 2:	
+				c = Color.GRAY;
+				break;
+			case 3:
+				c = Color.GREEN;
+				break;
+			case 4:
+				c = Color.MAGENTA;
+				break;
+			case 5:
+				c = Color.RED;
+				break;
+			case 6:
+				c = Color.YELLOW;
+				break;
+			case 7:
+				c = Color.WHITE;
+				break;
+			case 8:
+				c = Color.CYAN;
+				break;
+			default:
+				c = Color.BLACK;
+			}
+			return c;
+
+		}
+		public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {
+
+			loadPreferences();
+
+			if (pacdroid==null)
+				return;
+
+			WPUtil.logD("New Droid AI:" + Integer.toString(runnerAi));
+			pacdroid.setAiType(runnerAi);
+			for (int i=0; i<monsters.size(); i++)
+				monsters.get(i).setAiType(monsterAi);
+			if (key.equalsIgnoreCase("n_monsters") || key.equalsIgnoreCase("n_rows") ||
+					key.equalsIgnoreCase("n_cols") || key.equalsIgnoreCase("custom_monster_img") 
+					|| key.equalsIgnoreCase("bg_color") || key.equalsIgnoreCase("wall_color")||
+					key.equalsIgnoreCase("dot_color") || key.equalsIgnoreCase("theme_pref"))
+
+				resetGame();
+		}
+
+		protected void loadDisplayInformation()
+		{
+			this.dMetrics = WPUtil.getDisplayMetrics(wps);
+			//tOff = WPUtil.topOffset(dMetrics);
+			//bOff = WPUtil.bottomOffset(dMetrics);
+			//lOff = WPUtil.leftOffset(dMetrics);
+			//rOff = WPUtil.rightOffset(dMetrics);
+			this.currentOrientation = this.disp.getOrientation();   
+
+			this.wpBounds = WPUtil.getDrawingBounds(this.disp, this.dMetrics);
+			//wpBounds = new Rect(0+lOff, 0+tOff, dMetrics.widthPixels-rOff, dMetrics.heightPixels-bOff);
+
+			WPUtil.logD("Screen Resolution:".concat(Integer.toString(dMetrics.widthPixels)).concat("x").concat(Integer.toString(dMetrics.heightPixels)));
+			WPUtil.logD("Bounds for the wallpaper:".concat(wpBounds.toShortString()));
+		}
+		@Override
+		public void onCreate(SurfaceHolder surfaceHolder) {
+			super.onCreate(surfaceHolder);
+			setTouchEventsEnabled(true);
+		}
+
+		@Override
+		public void onDestroy() {
+			super.onDestroy();
+			mHandler.removeCallbacks(mDrawWallpaper);
+		}
+
+		@Override
+		public void onVisibilityChanged(boolean visible) {
+			mVisible = visible;
+			if (visible) {
+				if (!WPUtil.isThemeInstalled(this.context, this.theme)){
+					this.theme = PacDroidLiveWallpaperService.PACDROID_THEME;
+					resetGame();
+				}
+				if (this.reseting)
+					resetGame();
+				loop();
+			} else {
+				mHandler.removeCallbacks(mDrawWallpaper);
+			}
+		}
+
+		@Override
+		public void onSurfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+			super.onSurfaceChanged(holder, format, width, height);
+			// store the center of the surface, so we can draw the cube in the right spot
+			//wpWidth = width;
+			//wpHeight = height;
+			//mCenterX = width/2.0f;
+			//mCenterY = height/2.0f;
+			loop();
+		}
+
+		@Override
+		public void onSurfaceCreated(SurfaceHolder holder) {
+			super.onSurfaceCreated(holder);
+		}
+
+		@Override
+		public void onSurfaceDestroyed(SurfaceHolder holder) {
+			super.onSurfaceDestroyed(holder);
+			mVisible = false;
+			mHandler.removeCallbacks(mDrawWallpaper);
+		}
+
+		@Override
+		public void onOffsetsChanged(float xOffset, float yOffset,
+				float xStep, float yStep, int xPixels, int yPixels) {	
+			//loop();
+		}
+
+		/*
+		 * Store the position of the touch event so we can use it for drawing later
+		 */
+		@Override
+		public void onTouchEvent(MotionEvent event) {
+			/*  if (event.getAction() == MotionEvent.ACTION_MOVE) {
                 mTouchX = event.getX();
                 mTouchY = event.getY();
             } else {
                 mTouchX = -1;
                 mTouchY = -1;
             }*/
-            super.onTouchEvent(event);
-        }
+			super.onTouchEvent(event);
+		}
 
-        /*
-         * Draw one frame of the animation. This method gets called repeatedly
-         * by posting a delayed Runnable. You can do any drawing you want in
-         * here. This example draws a wireframe cube.
-         */
-        void drawFrame() {
-        	 final SurfaceHolder holder = getSurfaceHolder();
-             
-        	 //this.w = frame.width();
-        	 //this.h = frame.height();
-           
-        	this.reseting = false;
-            Canvas c = null;
-            try {
-                c = holder.lockCanvas();
-                if (c != null) {
-                    // draw something
-                    //c.save();
-                	clearCanvas(c);
-                    drawDots(c);
-                    if (this.drawWalls)
-                    	drawWalls(c);
-                    drawActors(c);
-                    //c.restore();
-                }
-            } 
-            finally {
-                if (c != null) holder.unlockCanvasAndPost(c);
-            }
+		/*
+		 * Draw one frame of the animation. This method gets called repeatedly
+		 * by posting a delayed Runnable. You can do any drawing you want in
+		 * here. This example draws a wireframe cube.
+		 */
+		void loop(){
+			//android.os.Debug.startMethodTracing("PacDroidTrace");
 
-            mHandler.removeCallbacks(mDrawWallpaper);
-            if (mVisible) {
-                mHandler.postDelayed(mDrawWallpaper, gameSpeed);
-            }
-            checkForWin();
-        }
-        void clearCanvas(Canvas c){
-        	// Allow other colors
-        	// Allow images
-        	// setup classic blue background?
-        	c.drawColor(this.bgColor);
-        	//WPUtil.logD("This.bgColor =" + Integer.toString(this.bgColor));
-        }
+			float dt = android.os.SystemClock.elapsedRealtime();
+			if (this.currentOrientation != disp.getOrientation())
+				this.resetGame();
+			this.reseting = false;
 
-        void drawDots(Canvas c) {
-        	if (!this.drawDots)
-        		return;
-            
-        	Paint p = new Paint(mPaint);
-        	p.setColor(this.dotColor);
-        	for (int i=0; i<dots.size(); i++)
-            {
-            	if (this.pacdroid.detectCollision(dots.get(i)))
-            		dots.get(i).disableDot();
-            	dots.get(i).draw(c, p);
-            }
-        }
-        
-        void drawWalls(Canvas c){
-        	int wallWidth = 5;
-        	 for (int i=0; i<walls.size(); i++)
-             {
-        		 Paint p = new Paint(mPaint);
-        		 p.setStyle(Style.STROKE);
-        		 p.setStrokeWidth(wallWidth);
-        		 p.setColor(this.wallColor);
-             		walls.get(i).draw(c, p);
-             }
-        }
-        void drawActors(Canvas c)
-        {
-        	for (int i=0; i<monsters.size(); i++)
-            {
-            	monsters.get(i).draw(c, mPaint);
-            	if (pacdroid.detectCollision(monsters.get(i), 15))
-            		if (eatMonsters)
-            			monsters.get(i).enabled = false;
-            		else
-            		resetGame();
-            }
-        	this.pacdroid.draw(c, mPaint);
-        }
+			drawFrame();
+			moveActors();
+			detectActorCollisions();
+			detectDotCollisions();
+			checkForWin();
 
-        protected void initActors()
-        {
-        	 WPUtil.logD("Stored AI for PacDroid:" + Integer.toString(runnerAi));
-          
-//             TurningPoint tp = startLocations.get(0);
-             initPacDroid();
-             initMonsters();
-             
-             pacdroid.setTargetActors(monsters);
-        }
-        
-        protected void initPacDroid(/*TurningPoint tp*/){
-        	 
-        	TurningPoint sp = turningPoints.get((nRow+1)*(nCol/2)+1);
-            ArrayList<Bitmap> runnerImgList = new ArrayList<Bitmap>();
-            runnerImgList.add(BitmapFactory.decodeResource(resources, R.raw.pd_android1));
-            runnerImgList.add(BitmapFactory.decodeResource(resources, R.raw.pd_android2));
-            runnerImgList.add(BitmapFactory.decodeResource(resources, R.raw.pd_android3));
-            runnerImgList.add(BitmapFactory.decodeResource(resources, R.raw.pd_android4));
+			dt = android.os.SystemClock.elapsedRealtime()-dt;
+			mHandler.removeCallbacks(mDrawWallpaper);
+			if (mVisible) {
+				mHandler.postDelayed(mDrawWallpaper, gameSpeed-(long)dt);
+			}
 
-            pacdroid = new PacDroid(sp.x, sp.y, wpBounds, runnerImgList);
-            pacdroid.turnRight();
-            pacdroid.tag = 1;
-            WPUtil.logD("creating pacdroid with AI:" + Integer.toString(runnerAi));
-            pacdroid.setAiType(runnerAi);
-        	
-        }
-        protected void initMonsters(){
-        	ArrayList<Sprite> runnerList = new ArrayList<Sprite>();
-            runnerList.add(pacdroid);
-            
-            ArrayList<Bitmap> mImgList = new ArrayList<Bitmap>();
-            Bitmap monsterImg = null; 
-            
-            if (this.customMonsterImg)
-            	monsterImg = WPUtil.loadPrivateImage(this.context, WPUtil.MONSTER_FILE_PATH);
-            
-            if(monsterImg==null) // null from not set or no image exhists
-            	monsterImg = BitmapFactory.decodeResource(resources, R.raw.pd_apple);
-            
-            mImgList.add(monsterImg);
-            
-            monsters = new ArrayList<Sprite>();
-            TurningPoint sp;
-            for (int i=0; i<nMonsters; i++)
-            {
-            	if (i < ((nRow+1)*(nCol/2)+1))
-            		sp = turningPoints.get(i);
-            	else
-            		sp = turningPoints.get(i+1); 				
-            	monsters.add(new PacDroidMonster(sp.x,sp.y, wpBounds, mImgList));
-            }
-            //WPUtil.logD("Initialized " + Integer.toString(monsters.size()) + " monsters");            
-            
-            pacdroid.setTurningPoints(this.turningPoints);
-            for (int i=0; i<monsters.size(); i++){
-            	monsters.get(i).setTurningPoints(this.turningPoints);
-            	monsters.get(i).setAiType(monsterAi);
-            	monsters.get(i).setTargetActors(runnerList);
-            	monsters.get(i).tag = i+1;
-            	((PacDroidMonster)monsters.get(i)).vulnerable = eatMonsters;
-            }
-        }
-        protected void initDotArray(){
-            dots = new ArrayList<Dot>();
-       	
-        	WPUtil.logD("Initializing the dot array");
-        	int x,y;
-        	
-        	int minX = wpBounds.left;
-            int maxX = wpBounds.right;
-            int dx = (maxX-minX) / nCol;
+			//android.os.Debug.stopMethodTracing();
+		}
+		void drawFrame() {
 
-            int minY = wpBounds.top;
-            int maxY = wpBounds.bottom;
-            int dy = (maxY - minY) / nRow;
-            
+			final SurfaceHolder holder = getSurfaceHolder();
+			Canvas c = null;
+			try {
+				c = holder.lockCanvas();
+				if (c != null) {
+					clearCanvas(c);
+					drawDots(c);
+					drawWalls(c);
+					drawActors(c);
+				}
+			} 
+			finally {
+				if (c != null) holder.unlockCanvasAndPost(c);
+			}
+		}
+		void clearCanvas(Canvas c){
+			// Allow other colors
+			// Allow images
+			// setup classic blue background?
+			c.drawColor(this.bgColor);
+			//WPUtil.logD("This.bgColor =" + Integer.toString(this.bgColor));
+		}
+		void drawDots(Canvas c) { 	
+			if (!this.drawDots)
+				return;
+			for (int i=0; i<nDots; i++)
+				dots.get(i).draw(c,dotPaint);
+		}
+		void drawWalls(Canvas c){
+			if (!this.drawWalls)
+				return;
+			for (int i=0; i<nWalls; i++)
+				walls.get(i).draw(c, wallPaint);
+		}
+		void drawActors(Canvas c)
+		{
+			for (int i=0; i<nMonsters; i++)
+				this.monsters.get(i).draw(c,mPaint);
+			this.pacdroid.draw(c, mPaint);
+		}
+		void moveActors(){
+			for (int i=0; i<nMonsters; i++)
+				monsters.get(i).move();
+			pacdroid.move();
+		}
+		void detectDotCollisions(){
+			if (!this.drawDots)
+				return;
+			
+			for (int i=0; i<nDots; i++){
+				tempDot = dots.get(i);
+				if (this.pacdroid.detectCollision(tempDot,3))
+					tempDot.disableDot();
+			}
+		}
+		
+		void detectActorCollisions(){
+			int collLen = 15;
+			if (this.theme.equalsIgnoreCase(PacDroidLiveWallpaperService.ZELDA_THEME))
+				collLen = 45;
+				
+			for (int i=0; i<nMonsters; i++){
+				tempMonster = monsters.get(i);
+				if (!tempMonster.enabled)
+					continue;
+				if (pacdroid.detectCollision(tempMonster, collLen))
+					if (eatMonsters){
+						tempMonster.setEnabled(false);
+						if (this.theme.equalsIgnoreCase(PacDroidLiveWallpaperService.ZELDA_THEME))
+		            		((ElfHunter)pacdroid).attackSprite(monsters.get(i));
+						break;
+					}
+					else
+						resetGame();
+			}
+		}
+		protected void initActors()
+		{
+			WPUtil.logD("Stored AI for PacDroid:" + Integer.toString(runnerAi));
 
-            for (int i=0; i<=nCol; i++)
-              	for (int ii=0; ii<4; ii++)
-	            	for (int j=0; j<=nRow; j++)
-	            		for (int jj=0; jj<5; jj++)
-		            	{
-	            			x = minX + dx*i + dx/4 * ii;
-	            			y = minY + dy*j + dy/5 * jj;
-	            			if((ii>0 && jj>0) || (i==nCol && ii>0) || (j==nRow && jj>0))
-	            				continue;
-	            			int r;
-	            			switch(dMetrics.densityDpi){
-	            			case DisplayMetrics.DENSITY_LOW:
-	            				r=1;
-	            				break;
-	            			case DisplayMetrics.DENSITY_MEDIUM:
-	            				r=2;
-	            				break;
-	            			case DisplayMetrics.DENSITY_HIGH:
-	            				r=3;
-	            				break;
-	            			default: //DENSITY_DEFAULT
-	            				r=2;
-	            		    }	
-	            			dots.add(new Dot(x,y, r));
-	            			//WPUtil.logD(Integer.toString(x).concat("x").concat(Integer.toString(y)));
-		            	}  
-        }
+			//             TurningPoint tp = startLocations.get(0);
+			initPacDroid();
+			initMonsters();
 
-        protected void initTurningPoints(){
-        	
-        	turningPoints = new ArrayList<TurningPoint>();
-        	WPUtil.logD("Initializing the turning points array");
-        	int x,y;
-        	
-        	int minX = wpBounds.left;
-            int maxX = wpBounds.right;
-            int dx = (maxX-minX) / nCol;
+			pacdroid.setTargetActors(monsters);
+		}
 
-            int minY = wpBounds.top;
-            int maxY = wpBounds.bottom;
-            int dy = (maxY - minY) / nRow;
-            
-            for (int i=0; i<=nCol; i++)
-            	for (int j=0; j<=nRow; j++)
-            	{
-            		//WPUtil.logD(Integer.toString(i)+"x"+Integer.toString(j));
-        			x = minX + dx*i;
-        			y = minY + dy*j;
-        			TurningPoint tp = new TurningPoint(x,y);
-        			tp.left = i!=0;
-        			tp.up = j!=0;;
-        			tp.right = i!=nCol;
-        			tp.down = j!=nRow;
+		protected void initPacDroid(/*TurningPoint tp*/){
 
-        			turningPoints.add(tp);
-            	}  
-            
-            WPUtil.logD("Created n Turning points:" + Integer.toString(turningPoints.size()));
-            WPUtil.logD("Created n Turning points:" + Integer.toString(turningPoints.size()));
-            WPUtil.logD("Created n Turning points:" + Integer.toString(turningPoints.size()));
+			if (this.theme.equalsIgnoreCase(PacDroidLiveWallpaperService.PACDROID_THEME))
+				this.pacdroid = ActorLoader.initPacDroid(resources, context, nRow, nCol, turningPoints, wpBounds, runnerAi);
+			else if (this.theme.equalsIgnoreCase(PacDroidLiveWallpaperService.PACMAN_THEME))
+				this.pacdroid = ActorLoader.initClassicRunner(resources, context, nRow, nCol, turningPoints, wpBounds, runnerAi);
+			else if (this.theme.equalsIgnoreCase(PacDroidLiveWallpaperService.ZELDA_THEME))
+				this.pacdroid = ActorLoader.initElfHunter(resources, context, nRow, nCol, turningPoints, wpBounds, runnerAi);
+			else
+				this.pacdroid = ActorLoader.initPacDroid(resources, context, nRow, nCol, turningPoints, wpBounds, runnerAi);
+		}
+		protected void initMonsters(){
+			
+			if (this.theme.equalsIgnoreCase(PacDroidLiveWallpaperService.PACDROID_THEME))
+				this.monsters = ActorLoader.initMonsters(resources, context, nMonsters, nRow, nCol, turningPoints, pacdroid, customMonsterImg, wpBounds, monsterAi, eatMonsters);
+			else if (this.theme.equalsIgnoreCase(PacDroidLiveWallpaperService.PACMAN_THEME))
+				this.monsters = ActorLoader.initClassicMonsters(resources, context, nMonsters, nRow, nCol, turningPoints, pacdroid, customMonsterImg, wpBounds, monsterAi, eatMonsters);
+			else if (this.theme.equalsIgnoreCase(PacDroidLiveWallpaperService.ZELDA_THEME))
+				this.monsters = ActorLoader.initSpitterMonsters(resources, context, nMonsters, nRow, nCol, turningPoints, pacdroid, customMonsterImg, wpBounds, monsterAi, eatMonsters);
+			else
+				this.monsters = ActorLoader.initMonsters(resources, context, nMonsters, nRow, nCol, turningPoints, pacdroid, customMonsterImg, wpBounds, monsterAi, eatMonsters);
+		}
+		
+		protected void initDotArray(){
+			dots = new ArrayList<Dot>();
 
-        
-        }
-        protected void initWalls(){
-        	
-            walls = new ArrayList<WallBlock>();
-        	WPUtil.logD("Initializing the wallblock objects array");
-        	int x,y;
-        	
-        	int minX = wpBounds.left;
-            int maxX = wpBounds.right;
-            int dx = (maxX-minX) / nCol;
+			WPUtil.logD("Initializing the dot array");
+			int x,y;
 
-            int minY = wpBounds.top;
-            int maxY = wpBounds.bottom;
-            int dy = (maxY - minY) / nRow;
-            
-            int r = 5;
-            int wOffset = 40;
-            
-            for (int i=0; i<=nCol-1; i++)
-            	for (int j=0; j<=nRow-1; j++)
-            	{
-        			x = (int)(minX + dx*i) + dx/2;
-        			y = (int)(minY + dy*j) + dy/2;
-        			WallBlock w = new WallBlock(x,y, dx-wOffset, dy-wOffset, r);
-        			//WPUtil.logD("WallBlock:".concat(Integer.toString(x)).concat("x"));
-        			walls.add(w);
-            	}  
-        }
+			int minX = wpBounds.left;
+			int maxX = wpBounds.right;
+			int dx = (maxX-minX) / nRow;
 
-        void drawTouchPoint(Canvas c) {
-          /*  if (mTouchX >=0 && mTouchY >= 0) {
+			int minY = wpBounds.top;
+			int maxY = wpBounds.bottom;
+			int dy = (maxY - minY) / nCol;
+
+
+			for (int i=0; i<=nRow; i++)
+				for (int ii=0; ii<4; ii++)
+					for (int j=0; j<=nCol; j++)
+						for (int jj=0; jj<5; jj++)
+						{
+							x = minX + dx*i + dx/4 * ii;
+							y = minY + dy*j + dy/5 * jj;
+							if((ii>0 && jj>0) || (i==nRow && ii>0) || (j==nCol && jj>0))
+								continue;
+							int r;
+							switch(dMetrics.densityDpi){
+							case DisplayMetrics.DENSITY_LOW:
+								r=1;
+								break;
+							case DisplayMetrics.DENSITY_MEDIUM:
+								r=2;
+								break;
+							case DisplayMetrics.DENSITY_HIGH:
+								r=3;
+								break;
+							default: //DENSITY_DEFAULT
+							r=2;
+							}	
+							dots.add(new Dot(x,y, r));
+							//WPUtil.logD(Integer.toString(x).concat("x").concat(Integer.toString(y)));
+						}  
+			this.nDots = this.dots.size();
+		}
+
+		protected void initTurningPoints(){
+
+			turningPoints = new ArrayList<TurningPoint>();
+			WPUtil.logD("Initializing the turning points array");
+			int x,y;
+
+			int minX = wpBounds.left;
+			int maxX = wpBounds.right;
+			int dx = (maxX-minX) / nRow;
+
+			int minY = wpBounds.top;
+			int maxY = wpBounds.bottom;
+			int dy = (maxY - minY) / nCol;
+
+			for (int i=0; i<=nRow; i++)
+				for (int j=0; j<=nCol; j++)
+				{
+					//WPUtil.logD(Integer.toString(i)+"x"+Integer.toString(j));
+					x = minX + dx*i;
+					y = minY + dy*j;
+					TurningPoint tp = new TurningPoint(x,y);
+					tp.left = i!=0;
+					tp.up = j!=0;;
+					tp.right = i!=nRow;
+					tp.down = j!=nCol;
+
+					turningPoints.add(tp);
+				}         
+		}
+		protected void initWalls(){
+
+			walls = new ArrayList<WallBlock>();
+			WPUtil.logD("Initializing the wallblock objects array");
+			int x,y;
+
+			int minX = wpBounds.left;
+			int maxX = wpBounds.right;
+			int dx = (maxX-minX) / nRow;
+
+			int minY = wpBounds.top;
+			int maxY = wpBounds.bottom;
+			int dy = (maxY - minY) / nCol;
+
+			int r = 5;
+			int wOffset = 40;
+
+			for (int i=0; i<=nRow-1; i++)
+				for (int j=0; j<=nCol-1; j++)
+				{
+					x = (int)(minX + dx*i) + dx/2;
+					y = (int)(minY + dy*j) + dy/2;
+					WallBlock w = new WallBlock(x,y, dx-wOffset, dy-wOffset, r);
+					//WPUtil.logD("WallBlock:".concat(Integer.toString(x)).concat("x"));
+					walls.add(w);
+				}  
+			nWalls = walls.size();
+		}
+
+		void drawTouchPoint(Canvas c) {
+			/*  if (mTouchX >=0 && mTouchY >= 0) {
                 c.drawCircle(mTouchX, mTouchY, 80, mPaint);
             }*/
-        }
-        void initStartLocations(){
+		}
+		void initStartLocations(){
 
-        	WPUtil.logD("N Turning points".concat(Integer.toString(turningPoints.size())));
-        	//Pac Man
-        	/*startLocations = new ArrayList<TurningPoint> ();
+			WPUtil.logD("N Turning points".concat(Integer.toString(turningPoints.size())));
+			//Pac Man
+			/*startLocations = new ArrayList<TurningPoint> ();
         	startLocations.add(turningPoints.get((nRow*(nCol+1)+nRow)/2));
-        	
+
         	//The 4 ghosts
         	startLocations.add(turningPoints.get(0));
         	startLocations.add(turningPoints.get(nRow));
@@ -591,31 +630,38 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
         	startLocations.add(turningPoints.get(nRow*(nCol+1)-2));
         	startLocations.add(turningPoints.get(nRow*(nCol+1)-nRow+2));
         	startLocations.add(turningPoints.get(nRow*(nCol+1)-nRow+3));*/
-        }
-        void resetGame()
-        {
-        	     
-        	this.reseting = true;
-        	pacdroid = null;
-        	monsters = null;
-        	turningPoints = null;
-        	dots = null;
-        	walls = null;
-        	initDotArray();
-        	initTurningPoints();
-        	initWalls();
-        	initStartLocations();
-        	initActors();
-        }
-        void checkForWin()
-        {
-        	for (int i=0; i<monsters.size(); i++)
-        		if (monsters.get(i).enabled)
-        			return;
-        	//for (int i=0; i<dots.size(); i++)
-        	//	if(dots.get(i).enabled)
-        	//		return;
-        	resetGame();
-        }
-    }
+		}
+		void resetGame()
+		{
+
+			this.loadDisplayInformation();
+			this.reseting = true;
+			pacdroid = null;
+			monsters = null;
+			turningPoints = null;
+			dots = null;
+			walls = null;
+			initDotArray();
+			initTurningPoints();
+			initWalls();
+			initStartLocations();
+			initActors();
+		}
+		void checkForWin()
+		{
+			for (int i=0; i<monsters.size(); i++)
+				if (monsters.get(i).enabled)
+					return;
+			
+			resetGame();
+		}
+	}
+	public static ArrayList<String> getThemeList(){
+		ArrayList<String> list = new ArrayList<String>();
+		list.add(PacDroidLiveWallpaperService.PACDROID_THEME);
+		list.add(PacDroidLiveWallpaperService.PACMAN_THEME);
+		list.add(PacDroidLiveWallpaperService.ZELDA_THEME);
+		
+		return list;
+	}
 }

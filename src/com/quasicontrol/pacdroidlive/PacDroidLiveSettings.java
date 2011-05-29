@@ -1,22 +1,22 @@
 package com.quasicontrol.pacdroidlive;
 
 import java.io.File;
-import java.io.FileDescriptor;
-import java.io.FileOutputStream;
+import java.util.ArrayList;
 
 import com.quasicontrol.live.WPUtil;
 
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Matrix;
+
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.preference.CheckBoxPreference;
+import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.Preference.OnPreferenceChangeListener;
@@ -25,22 +25,61 @@ import android.widget.Toast;
 
 
 public class PacDroidLiveSettings extends PreferenceActivity {
-	public final int GOT_IMAGE =1;
+	public final int GOT_IMAGE =12345;
 
 	protected CheckBoxPreference customImgChk;
+	protected ListPreference themePref;
 	protected Uri mUri;
 	
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		
 		addPreferencesFromResource(R.xml.prefs);
-		//setContentView(R.xml.prefs);
-		 Preference email_dev = this.findPreference("email_dev");
-	     Preference donate = this.findPreference("donate");
-	     customImgChk = (CheckBoxPreference) this.findPreference("custom_monster_img");
+	
+		Preference buy_theme = this.findPreference("buy_theme");
+		buy_theme.setIntent(new Intent(Intent.ACTION_VIEW, Uri.parse("http://market.android.com/search?q=pub:\"Quasicontrol Applications\"")));
+		//buy_theme.setOnPreferenceClickListener(new BuyThemePrefClickLIstener(this.getApplicationContext()));
+		
+		
+		Preference email_dev = this.findPreference("email_dev");
+		Intent emailIntent = new Intent(android.content.Intent.ACTION_SEND);
+		emailIntent.putExtra(android.content.Intent.EXTRA_EMAIL, new String[]{"stuart@quasicontrol.com"});		
+		emailIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, "Pac Droid: Bug Report/Feature Request");
+		emailIntent.setType("plain/text");
+		email_dev.setIntent(emailIntent);
+
+	    Preference donate = this.findPreference("donate");
+	    String url = "https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=5WJNUY8BWJJ7G&lc=US&item_name=Quasicontrol%20Applications&currency_code=USD&bn=PP%2dDonationsBF%3abtn_donate_LG%2egif%3aNonHosted";
+		Intent donateIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+		donate.setIntent(donateIntent);
+		
+
+	    customImgChk = (CheckBoxPreference) this.findPreference("custom_monster_img");
+	    customImgChk.setOnPreferenceClickListener(new CustomImagePreferenceClickListener(this.getApplicationContext()));
 	     
-	     email_dev.setOnPreferenceClickListener(new EmailPrefClickListener(this.getApplicationContext()));
-	     donate.setOnPreferenceClickListener(new DonatePrefClickListener(this.getApplicationContext()));
-	     customImgChk.setOnPreferenceClickListener(new CustomImagePreferenceClickListener(this.getApplicationContext()));
+	     
+	    themePref = (ListPreference) this.findPreference("theme_pref");
+	    setThemePrefEntries();     
+	}
+	public void setThemePrefEntries(){
+		
+		WPUtil.logD("setting up theme prefernce values");
+	    ArrayList<String> themes = WPUtil.getInstalledThemes(this.getApplicationContext(), PacDroidLiveWallpaperService.getThemeList());
+	    String[] entries = new String[themes.size()];
+	    String[] entryValues = new String [themes.size()];
+	   
+	    themes.toArray(entryValues);
+	    
+	    /*
+	    if (themes.size()==1)
+	    	Toast.makeText(PacDroidLiveSettings.this, "No custom themes available, buy some one today",
+					Toast.LENGTH_SHORT).show();
+	    */
+	    for (int i=0; i<themes.size(); i++)
+	    	entries[i] = WPUtil.getThemeDisplayName(themes.get(i));
+	    	
+	    themePref.setEntries(entries);
+	    themePref.setEntryValues(entryValues);
 	}
 
 	/**
@@ -60,41 +99,6 @@ public class PacDroidLiveSettings extends PreferenceActivity {
 			return false;
 		}
 	};
-	private class EmailPrefClickListener implements OnPreferenceClickListener
-	{
-    	Context c = null;
-    	public EmailPrefClickListener(Context c)
-    	{
-    		this.c = c;
-    	}
-		public boolean onPreferenceClick(Preference preference) {
-			
-			Intent emailIntent = new Intent(android.content.Intent.ACTION_SEND);
-			emailIntent.putExtra(android.content.Intent.EXTRA_EMAIL, "support@quasicontrol.com");		
-			emailIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, "Fruit Hunter: Bug Report/Feature Request");
-			emailIntent.setType("plain/text");
-			startActivity(emailIntent);
-
-			return true;
-		}
-    }
-	private class DonatePrefClickListener implements OnPreferenceClickListener
-	{
-    	Context c = null;
-    	public DonatePrefClickListener(Context c)
-    	{
-    		this.c = c;
-    	}
-		public boolean onPreferenceClick(Preference preference) {
-			
-			String url = "https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=5WJNUY8BWJJ7G&lc=US&item_name=Quasicontrol%20Applications&currency_code=USD&bn=PP%2dDonationsBF%3abtn_donate_LG%2egif%3aNonHosted";
-			Intent i = new Intent(Intent.ACTION_VIEW);
-			i.setData(Uri.parse(url));
-			startActivity(i);
-
-			return true;
-		}
-    }
 	
 	private class CustomImagePreferenceClickListener implements OnPreferenceClickListener{
 		Context c = null;
@@ -112,12 +116,18 @@ public class PacDroidLiveSettings extends PreferenceActivity {
 	}
 	
 	private void getImage() {
-    	Intent intent = new Intent(Intent.ACTION_GET_CONTENT);  
+		Toast.makeText(PacDroidLiveSettings.this, "For best results chose a square image smaller than 50x50 pixels",
+				Toast.LENGTH_SHORT).show();
+    	
+		
+		Intent intent = new Intent(Intent.ACTION_GET_CONTENT);  
     	intent.setType("image/*");
-    	mUri = Uri.fromFile(new File(Environment.getExternalStorageDirectory(),
-    			"pic_" + String.valueOf(System.currentTimeMillis()) + ".jpg"));
+    	mUri = Uri.fromFile(new File(Environment.getExternalStorageDirectory(),"PacDroidLiveWallpaper_tmp" + ".jpg"));
     	intent.putExtra(android.provider.MediaStore.EXTRA_OUTPUT, mUri);
 
+		//Intent intent =  new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.INTERNAL_CONTENT_URI);
+		//Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+		//intent.setType("image/*");
     	try {
     		intent.putExtra("return-data", true);
     		startActivityForResult(intent,GOT_IMAGE );
@@ -125,14 +135,40 @@ public class PacDroidLiveSettings extends PreferenceActivity {
     		e.printStackTrace();
     	}
     } 
-	
+	/*
+	protected final void onActivityResult(final int requestCode, final int 
+			resultCode, final Intent i) { 
+
+		super.onActivityResult(requestCode, resultCode, i); 
+		WPUtil.logD("onActivityResult 1----------------");
+		// this matches the request code in the above call 
+		if (requestCode == GOT_IMAGE) { 
+			WPUtil.logD("onActivityResult 2----------------");
+
+			Uri _uri = i.getData(); 
+			// this will be null if no image was selected... 
+			if (_uri != null) { 
+				WPUtil.logD("onActivityResult 3----------------");
+
+				// now we get the path to the image file 
+				Cursor cursor = getContentResolver().query(_uri, new String[] 
+				                                                            { android.provider.MediaStore.Images.ImageColumns.DATA }, 
+				                                                            null, null, null); 
+				cursor.moveToFirst(); 
+				String imageFilePath = cursor.getString(0); 
+				cursor.close(); 
+			} 
+		} 
+*/
+		
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-    	if (resultCode != RESULT_OK) {
-    		customImgChk.setChecked(false);
+		if (resultCode != RESULT_OK) {
+			customImgChk.setChecked(false);
     		return;
     	}
     	if (requestCode == GOT_IMAGE) {
-    		Bitmap image = WPUtil.loadPublicImage(mUri.getPath());
+    		Bitmap image = BitmapFactory.decodeFile(mUri.getPath());
+
     		if (image!=null)
     		{
     			image = WPUtil.resizeBitmap(image, WPUtil.IMAGE_SIZE_X, WPUtil.IMAGE_SIZE_Y);

@@ -13,11 +13,11 @@ public class PacDroidMonster extends com.quasicontrol.live.Sprite{
 	
 	PacDroidMonster(int x, int y, Rect bounds, ArrayList<Bitmap> imageList) {
 		super(x, y, bounds, imageList);
-		this.vel = 5;
+		this.vel = 3;
 	}
 	PacDroidMonster(int x, int y, Rect bounds, Bitmap bitmap, ArrayList<Bitmap> imageList, ArrayList<Sprite> targets) {
 		super(x, y, bounds, imageList, targets);
-		this.vel = 5;
+		this.vel = 3;
 	}
 	
 	public void draw(final Canvas c, final Paint mPaint)
