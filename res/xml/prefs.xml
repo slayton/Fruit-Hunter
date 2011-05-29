@@ -27,7 +27,7 @@
 	
 	<CheckBoxPreference 
         android:key="eat_monsters"
-        android:title="Android Eats Fruit" 
+        android:title="Android Eats Monster" 
 		android:defaultValue="true"/>
 		
 	<ListPreference 
@@ -35,7 +35,7 @@
 		android:entryValues="@array/monster_ai_values"
 		android:dialogTitle="Select Desired AI" 
 		android:key="monster_ai" 
-		android:title="Change Fruit AI"
+		android:title="Change Monster AI"
 		android:negativeButtonText="Cancel"
 		android:enabled="true"
 		android:defaultValue="1"/>
@@ -43,22 +43,37 @@
 	<ListPreference
 		android:entries="@array/n_monsters"
 		android:entryValues="@array/n_monster_values"
-		android:dialogTitle="Number of Fruits"
+		android:dialogTitle="Number of Monsters"
 		android:key="n_monsters"
-		android:title="Number of Fruits"
+		android:title="Number of Monsters"
 		android:negativeButtonText="Cancel"
 		android:enabled="true"
 		android:defaultValue="4"/>	
 	
 	<CheckBoxPreference 
         android:key="custom_monster_img"
-        android:title="Use Custom Fruit Image"
+        android:title="Use Custom Monster Image"
         android:summary="Check to select a custom image"
 		android:defaultValue="false"/>
 	
 	<PreferenceCategory
-		android:title="Interface Settings"/>
+		android:title="Theme Settings"/>
+		
+	<ListPreference
+		android:key="theme_pref"
+		android:title="Select a Theme"
+		android:dialogTitle="Select a Theme"
+		android:negativeButtonText="Cancel"
+		android:enabled="true"
+		android:defaultValue = "com.quasicontrol.pacdroidlive"/>
+	<Preference
+		android:key="buy_theme"
+		android:title="Get New Themes"
+		android:selectable="true"/> 	
 
+<PreferenceCategory
+		android:title="Theme Tweaks"/>
+				
 	<ListPreference
 		android:entries="@array/colors"
 		android:entryValues="@array/color_values"
@@ -71,7 +86,7 @@
 				
 	<CheckBoxPreference 
         android:key="draw_dots"
-        android:title="Draw PacMan Style Dots" 
+        android:title="Draw Dots" 
 		android:defaultValue="false"
 		android:summary="Will slow down animations"/>
 	
@@ -88,7 +103,7 @@
 		
 	<CheckBoxPreference 
         android:key="draw_walls"
-        android:title="Draw PacMan Style Walls" 
+        android:title="Draw Walls" 
 		android:defaultValue="false"
 		android:summary="Will slow down animations"/>
 		
@@ -102,17 +117,17 @@
 		android:enabled="true"
 		android:defaultValue="1"
 		android:dependency="draw_walls"/>	
-	
-	<PreferenceCategory
-		android:title="Advanced UI Settings"/>
+		
+<PreferenceCategory
+		android:title="Homescreen Settings"/>
 		
 	<ListPreference
 		android:key="n_rows"
 		android:entries="@array/n_icons"
 		android:entryValues="@array/n_icon_values"
 		android:defaultValue="4"
-		android:dialogTitle="Homescreen Rows"
-		android:title="Homescreen Rows"
+		android:dialogTitle="Icons per Row"
+		android:title="Icons per Row"
 		android:negativeButtonText="Cancel"
 		android:enabled="true"/>
 	<ListPreference
@@ -120,14 +135,14 @@
 		android:entries="@array/n_icons"
 		android:entryValues="@array/n_icon_values"
 		android:defaultValue="4"
-		android:dialogTitle="Homescreen Columns"
-		android:title="Homescreen Columns"
+		android:dialogTitle="Icons per Coloumn"
+		android:title="Icons per Coloumn"
 		android:negativeButtonText="Cancel"
 		android:enabled="true"/>
 					
 	<PreferenceCategory
 		android:title="Other"/>
-		
+ 	
      <Preference
 		android:key="email_dev"
 		android:title="Contact the Developer"
@@ -135,8 +150,8 @@
 		android:selectable="true"/>
 	<Preference
 		android:key="donate"
-		android:title="Donate!"
-		android:summary="Support my work, donate today!"
+		android:title="Thank the Developer"
+		android:summary="Support my work and fund future apps!"
 		android:selectable="true"/>
 		
 </PreferenceScreen>
