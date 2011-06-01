@@ -135,8 +135,8 @@
 		android:entries="@array/n_icons"
 		android:entryValues="@array/n_icon_values"
 		android:defaultValue="4"
-		android:dialogTitle="Icons per Coloumn"
-		android:title="Icons per Coloumn"
+		android:dialogTitle="Icons per Column"
+		android:title="Icons per Column"
 		android:negativeButtonText="Cancel"
 		android:enabled="true"/>
 					
