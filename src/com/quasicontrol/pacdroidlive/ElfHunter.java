@@ -11,7 +11,7 @@ import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.Rect;
 
-public class ElfHunter extends Sprite{
+public class ElfHunter extends PacDroid{
 
 	protected int prevDir = -1;
 	protected boolean attacking = false;

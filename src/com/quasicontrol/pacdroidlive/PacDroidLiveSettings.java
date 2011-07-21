@@ -28,8 +28,11 @@ public class PacDroidLiveSettings extends PreferenceActivity {
 	public final int GOT_IMAGE =12345;
 
 	protected CheckBoxPreference customImgChk;
+	protected CheckBoxPreference showControlsChk;
 	protected ListPreference themePref;
 	protected Uri mUri;
+	
+	protected String[] installedThemes;
 	
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -57,9 +60,27 @@ public class PacDroidLiveSettings extends PreferenceActivity {
 	    customImgChk = (CheckBoxPreference) this.findPreference("custom_monster_img");
 	    customImgChk.setOnPreferenceClickListener(new CustomImagePreferenceClickListener(this.getApplicationContext()));
 	     
-	     
+	    this.showControlsChk = (CheckBoxPreference) this.findPreference("show_controls");
+	    
 	    themePref = (ListPreference) this.findPreference("theme_pref");
-	    setThemePrefEntries();     
+	    setThemePrefEntries(); 
+	    
+	    this.shouldEnableControls();
+	}
+	
+	protected void shouldEnableControls(){
+		if (this.installedThemes == null)
+			this.setThemePrefEntries();
+		
+		if (this.installedThemes.length > 1)
+			this.showControlsChk.setEnabled(true);
+		else
+		{
+			this.showControlsChk.setEnabled(false);
+			this.showControlsChk.setChecked(false);
+		}
+		
+		
 	}
 	public void setThemePrefEntries(){
 		
@@ -67,6 +88,8 @@ public class PacDroidLiveSettings extends PreferenceActivity {
 	    ArrayList<String> themes = WPUtil.getInstalledThemes(this.getApplicationContext(), PacDroidLiveWallpaperService.getThemeList());
 	    String[] entries = new String[themes.size()];
 	    String[] entryValues = new String [themes.size()];
+	    
+	    this.installedThemes = entries;
 	   
 	    themes.toArray(entryValues);
 	    
@@ -76,7 +99,7 @@ public class PacDroidLiveSettings extends PreferenceActivity {
 					Toast.LENGTH_SHORT).show();
 	    */
 	    for (int i=0; i<themes.size(); i++)
-	    	entries[i] = WPUtil.getThemeDisplayName(themes.get(i));
+	    	entries[i] = PacDroidLiveWallpaperService.getThemeDisplayName(themes.get(i));
 	    	
 	    themePref.setEntries(entries);
 	    themePref.setEntryValues(entryValues);
@@ -181,6 +204,7 @@ public class PacDroidLiveSettings extends PreferenceActivity {
     		}
     	}
     }
+	
 	
 	
 

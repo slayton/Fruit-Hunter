@@ -10,7 +10,7 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
 
-public class GoCart extends PacDroidMonster{
+public class GoCart extends PacDroid{
 
 	protected int imgPerDir = 2;
 	protected int nImage = 0;
@@ -42,8 +42,10 @@ public class GoCart extends PacDroidMonster{
 		if (this.nImageArray==1)
 			imgIdx = 0;
 		else
-			imgIdx  += ((imgIdx % imgPerDir == 0) ? 1 : -1);
+			//imgIdx  += ((imgIdx % imgPerDir == 0) ? 1 : -1);
+			imgIdx = this.getDir();
 		//imgIdx = 0;
+		WPUtil.logD("Go Cart Draw: " + Integer.toString(this.imageArray.size()) + " " + Integer.toString(imgIdx));
 		drawMe = imageArray.get(imgIdx);//Bitmap.createBitmap(imageArray.get(imgIdx), 0, 0, image.getWidth(), image.getHeight(), m, true);
 		c.drawBitmap(drawMe, this.x-image.getWidth()/2, this.y-image.getHeight()/2, mPaint);
 		if (this.disabledFlag)

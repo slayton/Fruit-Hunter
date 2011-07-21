@@ -16,6 +16,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.Paint.Style;
 import android.os.Handler;
@@ -38,7 +39,10 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
 	public static final String PACDROID_THEME = "com.quasicontrol.pacdroidlive";
 	public static final String PACMAN_THEME = "com.quasicontrol.pacdroidlive.classic";
 	public static final String ZELDA_THEME = "com.quasicontrol.pacdroidlive.elfhunter";
+	public static final String GOCART_THEME = "com.quasicontrol.pacdroidlive.gocarts";
+	public static final String HONEYCOMB_THEME = "com.quasicontrol.pacdroidlive.honeycomb";
 
+	
 
 	@Override
 	public void onCreate() {
@@ -96,8 +100,10 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
 		
 		protected String theme = PacDroidLiveWallpaperService.PACDROID_THEME;
 		
-		
 		protected final Paint mPaint = new Paint();
+		
+		protected boolean showControls = false;
+		protected ArrayList<Sprite> controls;
 
 		protected final Runnable mDrawWallpaper = new Runnable() {
 			public void run() {
@@ -157,7 +163,6 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
 		protected void loadPreferences()
 		{
 
-
 			WPUtil.logD("loading PREFERENCES!!!");
 			eatMonsters = mPrefs.getBoolean("eat_monsters", true);
 			gameSpeed = Integer.parseInt(mPrefs.getString("game_speed", "2"));
@@ -182,6 +187,8 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
 			nRow = Integer.parseInt(mPrefs.getString("n_rows", "4"));
 			nCol = Integer.parseInt(mPrefs.getString("n_cols", "4"));
 
+			this.showControls = mPrefs.getBoolean("show_controls", false);
+			
 			this.theme = mPrefs.getString("theme_pref", "com.quasicontrol.pacdroidlive");
 			
 			if (monsterAi==1)
@@ -350,14 +357,8 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
 		 */
 		@Override
 		public void onTouchEvent(MotionEvent event) {
-			/*  if (event.getAction() == MotionEvent.ACTION_MOVE) {
-                mTouchX = event.getX();
-                mTouchY = event.getY();
-            } else {
-                mTouchX = -1;
-                mTouchY = -1;
-            }*/
 			super.onTouchEvent(event);
+			detectControlTouch(event);
 		}
 
 		/*
@@ -365,6 +366,19 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
 		 * by posting a delayed Runnable. You can do any drawing you want in
 		 * here. This example draws a wireframe cube.
 		 */
+		void detectControlTouch(MotionEvent e){
+			WPUtil.logD("Touch Event:" + Integer.toString((int)e.getX()) + "x" + Integer.toString((int)e.getY()));
+
+			Point p = new Point((int)e.getX(),(int)e.getY());
+			PacDroid pac = (PacDroid)pacdroid;
+			int nControls = this.controls.size();
+			if (!this.showControls)
+				return;
+			for (int i=0; i<nControls; i++)
+				if (this.controls.get(i).detectCollision(p, 30))
+					pac.enqueueTurn(this.controls.get(i).getDir());	
+//			drawTouchEvent(e);
+		}
 		void loop(){
 			//android.os.Debug.startMethodTracing("PacDroidTrace");
 
@@ -379,10 +393,13 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
 			detectDotCollisions();
 			checkForWin();
 
-			dt = android.os.SystemClock.elapsedRealtime()-dt;
 			mHandler.removeCallbacks(mDrawWallpaper);
 			if (mVisible) {
-				mHandler.postDelayed(mDrawWallpaper, gameSpeed-(long)dt);
+				dt = android.os.SystemClock.elapsedRealtime()-dt;
+				long waitTime = (long) (gameSpeed - dt);
+				if (waitTime<0)
+					waitTime = 0;
+				mHandler.postDelayed(mDrawWallpaper, waitTime);
 			}
 
 			//android.os.Debug.stopMethodTracing();
@@ -395,6 +412,7 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
 				c = holder.lockCanvas();
 				if (c != null) {
 					clearCanvas(c);
+					drawControls(c);
 					drawDots(c);
 					drawWalls(c);
 					drawActors(c);
@@ -429,6 +447,15 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
 				this.monsters.get(i).draw(c,mPaint);
 			this.pacdroid.draw(c, mPaint);
 		}
+		void drawControls(Canvas c)
+		{
+			if (!this.showControls)
+				return;
+			
+			int nControls = this.controls.size();
+			for (int i=0; i<nControls; i++)
+				this.controls.get(i).draw(c, this.mPaint);			
+		}
 		void moveActors(){
 			for (int i=0; i<nMonsters; i++)
 				monsters.get(i).move();
@@ -447,13 +474,17 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
 		
 		void detectActorCollisions(){
 			int collLen = 15;
+			
 			if (this.theme.equalsIgnoreCase(PacDroidLiveWallpaperService.ZELDA_THEME))
 				collLen = 45;
+			if (this.theme.equalsIgnoreCase(PacDroidLiveWallpaperService.GOCART_THEME))
+				return;
 				
 			for (int i=0; i<nMonsters; i++){
 				tempMonster = monsters.get(i);
 				if (!tempMonster.enabled)
 					continue;
+				
 				if (pacdroid.detectCollision(tempMonster, collLen))
 					if (eatMonsters){
 						tempMonster.setEnabled(false);
@@ -462,6 +493,7 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
 						break;
 					}
 					else
+						
 						resetGame();
 			}
 		}
@@ -480,10 +512,14 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
 
 			if (this.theme.equalsIgnoreCase(PacDroidLiveWallpaperService.PACDROID_THEME))
 				this.pacdroid = ActorLoader.initPacDroid(resources, context, nRow, nCol, turningPoints, wpBounds, runnerAi);
+			else if (this.theme.equalsIgnoreCase(PacDroidLiveWallpaperService.HONEYCOMB_THEME))
+				this.pacdroid = ActorLoader.initPacHoney(resources, context, nRow, nCol, turningPoints, wpBounds, runnerAi);
 			else if (this.theme.equalsIgnoreCase(PacDroidLiveWallpaperService.PACMAN_THEME))
 				this.pacdroid = ActorLoader.initClassicRunner(resources, context, nRow, nCol, turningPoints, wpBounds, runnerAi);
 			else if (this.theme.equalsIgnoreCase(PacDroidLiveWallpaperService.ZELDA_THEME))
 				this.pacdroid = ActorLoader.initElfHunter(resources, context, nRow, nCol, turningPoints, wpBounds, runnerAi);
+			else if (this.theme.equalsIgnoreCase(PacDroidLiveWallpaperService.GOCART_THEME))
+				this.pacdroid = ActorLoader.initMarioGoCart(resources, context, nRow, nCol, turningPoints, wpBounds, runnerAi);
 			else
 				this.pacdroid = ActorLoader.initPacDroid(resources, context, nRow, nCol, turningPoints, wpBounds, runnerAi);
 		}
@@ -491,10 +527,14 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
 			
 			if (this.theme.equalsIgnoreCase(PacDroidLiveWallpaperService.PACDROID_THEME))
 				this.monsters = ActorLoader.initMonsters(resources, context, nMonsters, nRow, nCol, turningPoints, pacdroid, customMonsterImg, wpBounds, monsterAi, eatMonsters);
+			else if (this.theme.equalsIgnoreCase(PacDroidLiveWallpaperService.HONEYCOMB_THEME))
+				this.monsters = ActorLoader.initHoneyMonsters(resources, context, nMonsters, nRow, nCol, turningPoints, pacdroid, customMonsterImg, wpBounds, monsterAi, eatMonsters);
 			else if (this.theme.equalsIgnoreCase(PacDroidLiveWallpaperService.PACMAN_THEME))
 				this.monsters = ActorLoader.initClassicMonsters(resources, context, nMonsters, nRow, nCol, turningPoints, pacdroid, customMonsterImg, wpBounds, monsterAi, eatMonsters);
 			else if (this.theme.equalsIgnoreCase(PacDroidLiveWallpaperService.ZELDA_THEME))
 				this.monsters = ActorLoader.initSpitterMonsters(resources, context, nMonsters, nRow, nCol, turningPoints, pacdroid, customMonsterImg, wpBounds, monsterAi, eatMonsters);
+			else if (this.theme.equalsIgnoreCase(PacDroidLiveWallpaperService.GOCART_THEME))
+				this.monsters = ActorLoader.initGoCarts(resources, context, nMonsters, nRow, nCol, turningPoints, pacdroid, customMonsterImg, wpBounds, monsterAi, eatMonsters);
 			else
 				this.monsters = ActorLoader.initMonsters(resources, context, nMonsters, nRow, nCol, turningPoints, pacdroid, customMonsterImg, wpBounds, monsterAi, eatMonsters);
 		}
@@ -595,16 +635,52 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
 					x = (int)(minX + dx*i) + dx/2;
 					y = (int)(minY + dy*j) + dy/2;
 					WallBlock w = new WallBlock(x,y, dx-wOffset, dy-wOffset, r);
-					//WPUtil.logD("WallBlock:".concat(Integer.toString(x)).concat("x"));
 					walls.add(w);
 				}  
 			nWalls = walls.size();
 		}
 
-		void drawTouchPoint(Canvas c) {
-			/*  if (mTouchX >=0 && mTouchY >= 0) {
-                c.drawCircle(mTouchX, mTouchY, 80, mPaint);
-            }*/
+		void initControls(){
+			//if (!this.showControls)
+			//	return;
+			if (this.controls==null)
+				this.controls = new ArrayList<Sprite>();
+			
+			TurningPoint tp = this.turningPoints.get(this.nCol*2+3);
+			ArrayList<Bitmap> upList = new ArrayList<Bitmap>(); 
+			upList.add(BitmapFactory.decodeResource(this.resources,	R.raw.arrow_right));
+			Sprite upBtn = new Sprite(tp.x, tp.y,this.wpBounds, upList);
+			upBtn.setDir(Sprite.MOVING_UP);
+			
+			tp = this.turningPoints.get(this.nCol*2+5);
+			ArrayList<Bitmap> downList = new ArrayList<Bitmap>(); 
+			downList.add(BitmapFactory.decodeResource(this.resources,	R.raw.arrow_right));
+			Sprite downBtn = new Sprite(tp.x, tp.y,this.wpBounds, downList);
+			downBtn.setDir(Sprite.MOVING_DOWN);
+			
+			tp = this.turningPoints.get(this.nCol*1+3);
+			ArrayList<Bitmap> leftList = new ArrayList<Bitmap>(); 
+			leftList.add(BitmapFactory.decodeResource(this.resources,	R.raw.arrow_right));
+			Sprite leftBtn = new Sprite(tp.x, tp.y,this.wpBounds, leftList);
+			leftBtn.setDir(Sprite.MOVING_LEFT);
+			
+			tp = this.turningPoints.get(this.nCol*3+5);
+			ArrayList<Bitmap> rightList = new ArrayList<Bitmap>(); 
+			rightList.add(BitmapFactory.decodeResource(this.resources,	R.raw.arrow_right));
+			Sprite rightBtn = new Sprite(tp.x, tp.y,this.wpBounds, rightList);
+			rightBtn.setDir(Sprite.MOVING_RIGHT);
+			
+			this.controls.add(upBtn);
+			this.controls.add(downBtn);
+			this.controls.add(leftBtn);
+			this.controls.add(rightBtn);
+			
+		}
+		void drawTouchEvent(MotionEvent e) {
+			//if (mTouchX >=0 && mTouchY >= 0) {
+            //    c.drawCircle(mTouchX, mTouchY, 10, mPaint);
+            //}
+			//this.drawCircle(e.getX(), e.getY(), 15, this.mPaint);
 		}
 		void initStartLocations(){
 
@@ -641,10 +717,12 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
 			turningPoints = null;
 			dots = null;
 			walls = null;
+			controls = null;
 			initDotArray();
 			initTurningPoints();
 			initWalls();
 			initStartLocations();
+			initControls();
 			initActors();
 		}
 		void checkForWin()
@@ -657,11 +735,26 @@ public class PacDroidLiveWallpaperService extends WallpaperService {
 		}
 	}
 	public static ArrayList<String> getThemeList(){
-		ArrayList<String> list = new ArrayList<String>();
-		list.add(PacDroidLiveWallpaperService.PACDROID_THEME);
-		list.add(PacDroidLiveWallpaperService.PACMAN_THEME);
-		list.add(PacDroidLiveWallpaperService.ZELDA_THEME);
-		
-		return list;
+		ArrayList<String> themeList = new ArrayList<String>();
+		themeList.add(PacDroidLiveWallpaperService.PACDROID_THEME);
+		themeList.add(PacDroidLiveWallpaperService.PACMAN_THEME);
+		themeList.add(PacDroidLiveWallpaperService.ZELDA_THEME);
+		themeList.add(PacDroidLiveWallpaperService.GOCART_THEME);
+		themeList.add(PacDroidLiveWallpaperService.HONEYCOMB_THEME);
+		return themeList;
+	}
+	public static String getThemeDisplayName(String theme){
+		if (theme.equalsIgnoreCase(PacDroidLiveWallpaperService.PACDROID_THEME))
+			return "PacDroid Theme";
+		else if (theme.equalsIgnoreCase(PacDroidLiveWallpaperService.PACMAN_THEME))
+			return "Classic Pac Theme";
+		else if (theme.equalsIgnoreCase(PacDroidLiveWallpaperService.ZELDA_THEME))
+			return "Legend of Zelda Theme";
+		else if (theme.equalsIgnoreCase(PacDroidLiveWallpaperService.GOCART_THEME))
+			return "Mario Kart Theme"; 
+		else if (theme.equalsIgnoreCase(PacDroidLiveWallpaperService.HONEYCOMB_THEME))
+			return "Honeycomb Theme"; 
+		else
+			return "Unknown Theme";
 	}
 }
